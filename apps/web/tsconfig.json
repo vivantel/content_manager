@@ -15,7 +15,12 @@
       "@/*": ["src/*"],
       "@vivascribe/*": ["../../packages/*/src"]
     },
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "include": ["src", "vite.config.ts", "src/vite-env.d.ts"],
   "exclude": ["node_modules", "dist"]

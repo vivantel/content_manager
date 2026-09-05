@@ -36,7 +36,8 @@ app.addHook('onRequest', async (request, reply) => {
   reply.header('x-request-id', request.requestId);
 });
 
-await registerRoutes(app);
+// Register routes after decorators
+registerRoutes(app);
 
 app.setErrorHandler(errorHandler);
 
