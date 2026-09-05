@@ -128,7 +128,8 @@ jobs:
 
       - name: Deploy to Vercel Preview
         uses: amondnet/vercel-action@v25
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
@@ -137,7 +138,6 @@ jobs:
           working-directory: apps/web
 
       - name: Deploy API to Supabase Edge Functions
-        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
         run: |
           npx supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
@@ -164,8 +164,9 @@ jobs:
           path: apps/web/dist/
 
       - name: Deploy to Vercel Production
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
         uses: amondnet/vercel-action@v25
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
@@ -174,7 +175,6 @@ jobs:
           working-directory: apps/web
 
       - name: Deploy API to Supabase Edge Functions
-        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
         run: |
           npx supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
@@ -188,8 +188,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send notification
-        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
         uses: slackapi/slack-github-action@v1.24.0
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
           payload: |
             {
