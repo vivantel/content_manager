@@ -33,9 +33,8 @@
     "noImplicitThis": false,
     "forceConsistentCasingInFileNames": false,
     "noErrorTruncation": false,
-    "suppressExcessPropertyErrors": true,
-    "suppressImplicitAnyIndexErrors": true,
-    "noPropertyAccessFromIndexSignature": false
+    "noImplicitAny": false,
+    "noImplicitThis": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
