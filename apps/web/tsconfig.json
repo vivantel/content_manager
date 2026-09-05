@@ -15,7 +15,7 @@
       "@/*": ["src/*"],
       "@vivascribe/*": ["../../packages/*/src"]
     },
-    "types": ["vite/client", "vite-plugin-svgr"]
+    "types": ["vite/client"]
   },
   "include": ["src", "vite.config.ts", "src/vite-env.d.ts"],
   "exclude": ["node_modules", "dist"]
