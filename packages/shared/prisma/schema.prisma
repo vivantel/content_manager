@@ -468,3 +468,15 @@ model WebhookEvent {
   @@index([processed])
   @@index([createdAt])
 }
+
+model RepoSyncState {
+  id                 String   @id @default(uuid())
+  repositoryId       String   @unique
+  lastSyncedAt       DateTime @default(now())
+  lastSyncedSha      String?
+  lastSyncedTag      String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([repositoryId])
+}

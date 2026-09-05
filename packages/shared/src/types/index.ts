@@ -229,3 +229,15 @@ export const PaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =
     limit: z.number().int().positive(),
     totalPages: z.number().int().nonnegative(),
   });
+
+// Repo Sync State
+export const RepoSyncStateSchema = z.object({
+  id: z.string().uuid(),
+  repositoryId: z.string().uuid(),
+  lastSyncedAt: z.date(),
+  lastSyncedSha: z.string().optional(),
+  lastSyncedTag: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type RepoSyncState = z.infer<typeof RepoSyncStateSchema>;
