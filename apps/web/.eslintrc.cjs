@@ -9,7 +9,6 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:@typescript-eslint/recommended-type-checked',
     'plugin:react-hooks/recommended',
-    'plugin:react-refresh/recommended',
     'prettier',
   ],
   ignorePatterns: ['dist/', '.eslintrc.cjs', 'node_modules/'],
