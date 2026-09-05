@@ -1,0 +1,111 @@
+name: Git Poll & Dispatch
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: 'Repository to poll (owner/repo)'
+        required: false
+        type: string
+      since:
+        description: 'ISO timestamp to poll from'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  VIVASCRIBE_API_URL: ${{ secrets.VIVASCRIBE_API_URL }}
+  VIVASCRIBE_API_KEY: ${{ secrets.VIVASCRIBE_API_KEY }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+
+jobs:
+  poll-github:
+    name: Poll GitHub Repositories
+    if: env.VIVASCRIBE_API_URL != '' && env.VIVASCRIBE_API_KEY != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./cover-repo
+
+      - name: Poll GitHub repositories
+        run: |
+          node scripts/poll-github.js
+        env:
+          SINCE: ${{ github.event.inputs.since }}
+          REPO_OVERRIDE: ${{ github.event.inputs.repo }}
+        working-directory: ./cover-repo
+
+      - name: Dispatch events to VivaScribe
+        run: |
+          node scripts/dispatch-events.js
+        env:
+          VIVASCRIBE_API_URL: ${{ env.VIVASCRIBE_API_URL }}
+          VIVASCRIBE_API_KEY: ${{ env.VIVASCRIBE_API_KEY }}
+        working-directory: ./cover-repo
+
+  poll-gitlab:
+    name: Poll GitLab Repositories
+    if: env.VIVASCRIBE_API_URL != '' && env.VIVASCRIBE_API_KEY != '' && env.GITLAB_TOKEN != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./cover-repo
+
+      - name: Poll GitLab repositories
+        run: |
+          node scripts/poll-gitlab.js
+        env:
+          SINCE: ${{ github.event.inputs.since }}
+          REPO_OVERRIDE: ${{ github.event.inputs.repo }}
+        working-directory: ./cover-repo
+
+      - name: Dispatch events to VivaScribe
+        run: |
+          node scripts/dispatch-events.js
+        env:
+          VIVASCRIBE_API_URL: ${{ env.VIVASCRIBE_API_URL }}
+          VIVASCRIBE_API_KEY: ${{ env.VIVASCRIBE_API_KEY }}
+        working-directory: ./cover-repo
+
+  notify-failure:
+    name: Notify on Failure
+    needs: [poll-github, poll-gitlab]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send failure notification
+        run: |
+          curl -X POST "${{ env.VIVASCRIBE_API_URL }}/webhooks/poll-failure" \
+            -H "Authorization: Bearer ${{ env.VIVASCRIBE_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"workflow\":\"${{ github.workflow }}\",\"run_id\":\"${{ github.run_id }}\",\"failed_jobs\":\"${{ needs.poll-github.result }},${{ needs.poll-gitlab.result }}\"}"
+        env:
+          VIVASCRIBE_API_URL: ${{ env.VIVASCRIBE_API_URL }}
+          VIVASCRIBE_API_KEY: ${{ env.VIVASCRIBE_API_KEY }}
