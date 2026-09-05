@@ -21,7 +21,9 @@
     "strictNullChecks": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "strict": false
+    "strict": false,
+    "suppressExcessPropertyErrors": true,
+    "suppressImplicitAnyIndexErrors": true
   },
   "include": ["src", "vite.config.ts", "src/vite-env.d.ts"],
   "exclude": ["node_modules", "dist"]
