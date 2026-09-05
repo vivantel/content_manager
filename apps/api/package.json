@@ -1,0 +1,37 @@
+{
+  "name": "@vivascribe/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@vivascribe/shared": "^0.0.0",
+    "@prisma/client": "^5.15.0",
+    "fastify": "^4.28.0",
+    "fastify-type-provider-zod": "^1.2.0",
+    "zod": "^3.23.0",
+    "@supabase/supabase-js": "^2.44.0",
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0",
+    "neverthrow": "^7.0.0",
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "tsx": "^4.15.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^20.14.0",
+    "@types/crypto-js": "^4.2.0",
+    "prisma": "^5.15.0"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "outputs": []
+    },
+    "typecheck": {
+      "outputs": [],
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "outputs": ["coverage/**"],
+      "dependsOn": ["^build"]
+    },
+    "db:generate": {
+      "outputs": ["node_modules/.prisma/client/**"]
+    },
+    "db:push": {
+      "outputs": []
+    },
+    "db:studio": {
+      "cache": false
+    }
+  },
+  "globalEnv": ["DATABASE_URL", "SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"]
+}

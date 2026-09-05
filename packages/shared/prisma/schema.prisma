@@ -1,0 +1,470 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// ORGANIZATION & USER
+// ============================================
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships Membership[]
+  repositories Repository[]
+  contentPieces ContentPiece[]
+  channels PublishingChannel[]
+  prompts PromptVersion[]
+  notifications Notification[]
+  members User[]
+
+  @@index([slug])
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String?
+  avatarUrl     String?
+  githubId      String?  @unique
+  gitlabId      String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships Membership[]
+  reviews ContentReview[]
+  notifications Notification[]
+  integrations UserIntegration[]
+
+  @@index([email])
+  @@index([githubId])
+  @@index([gitlabId])
+}
+
+model Membership {
+  id             String           @id @default(uuid())
+  userId         String
+  organizationId String
+  role           MembershipRole   @default(viewer)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+enum MembershipRole {
+  owner
+  admin
+  editor
+  viewer
+}
+
+// ============================================
+// REPOSITORY & EVENTS
+// ============================================
+
+model Repository {
+  id                String   @id @default(uuid())
+  organizationId    String
+  provider          Provider
+  providerRepoId    String
+  name              String
+  fullName          String
+  url               String
+  defaultBranch     String   @default("main")
+  type              RepositoryType @default(application)
+  isActive          Boolean  @default(true)
+  eventSources      Json     @default("{}")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  events RepoEvent[]
+  contentPieces ContentPiece[]
+  promptOverrides PromptVersion[]
+
+  @@unique([provider, providerRepoId])
+  @@index([organizationId])
+  @@index([provider])
+}
+
+enum Provider {
+  github
+  gitlab
+}
+
+enum RepositoryType {
+  library
+  application
+  monorepo
+  docs
+  custom
+}
+
+model RepoEvent {
+  id                String   @id @default(uuid())
+  repositoryId      String
+  type              RepoEventType
+  providerEventId   String
+  payload           Json
+  processedAt       DateTime?
+  createdAt         DateTime @default(now())
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, providerEventId])
+  @@index([repositoryId])
+  @@index([type])
+  @@index([processedAt])
+}
+
+enum RepoEventType {
+  push
+  pull_request_merged
+  release
+  tag
+  changelog
+}
+
+// ============================================
+// CONTENT
+// ============================================
+
+model ContentPiece {
+  id                 String         @id @default(uuid())
+  organizationId     String
+  repositoryId       String?
+  title              String
+  slug               String
+  contentType        ContentType
+  status             ContentStatus  @default(draft)
+  content            String         @db.Text
+  contentHtml        String?        @db.Text
+  frontMatter        Json?
+  targetChannels     String[]       @default([])
+  scheduledAt        DateTime?
+  publishedAt        DateTime?
+  promptVersionId    String?
+  triggeringEventId  String?
+  metadata           Json?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository Repository? @relation(fields: [repositoryId], references: [id], onDelete: SetNull)
+  versions ContentVersion[]
+  reviews ContentReview[]
+  publishJobs PublishJob[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([repositoryId])
+  @@index([status])
+  @@index([contentType])
+  @@index([scheduledAt])
+}
+
+enum ContentType {
+  release_notes
+  technical_article
+  product_announcement
+  tutorial
+}
+
+enum ContentStatus {
+  draft
+  in_review
+  approved
+  changes_requested
+  rejected
+  scheduled
+  published
+  failed
+}
+
+model ContentVersion {
+  id              String   @id @default(uuid())
+  contentPieceId  String
+  content         String   @db.Text
+  contentHtml     String?  @db.Text
+  frontMatter     Json?
+  editorId        String
+  changeSummary   String?
+  createdAt       DateTime @default(now())
+
+  contentPiece ContentPiece @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+  editor User @relation(fields: [editorId], references: [id], onDelete: Cascade)
+
+  @@index([contentPieceId])
+  @@index([createdAt])
+}
+
+model ContentReview {
+  id              String       @id @default(uuid())
+  contentPieceId  String
+  reviewerId      String
+  action          ReviewAction
+  comment         String?
+  createdAt       DateTime     @default(now())
+
+  contentPiece ContentPiece @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+  reviewer User @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@index([contentPieceId])
+  @@index([reviewerId])
+}
+
+enum ReviewAction {
+  approve
+  request_changes
+  reject
+}
+
+// ============================================
+// PUBLISHING
+// ============================================
+
+model PublishingChannel {
+  id              String   @id @default(uuid())
+  organizationId  String
+  name            String
+  type            ChannelType
+  config          Json
+  isActive        Boolean  @default(true)
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  jobs PublishJob[]
+
+  @@index([organizationId])
+  @@index([type])
+}
+
+enum ChannelType {
+  blog
+  social
+  newsletter
+  webhook
+}
+
+model PublishJob {
+  id                 String      @id @default(uuid())
+  contentPieceId     String
+  channelId          String
+  status             JobStatus   @default(pending)
+  externalId         String?
+  externalUrl        String?
+  attempt            Int        @default(0)
+  lastError          String?
+  scheduledAt        DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  contentPiece ContentPiece @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+  channel PublishingChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([contentPieceId])
+  @@index([channelId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+enum JobStatus {
+  pending
+  running
+  success
+  failed
+  cancelled
+}
+
+// ============================================
+// PROMPTS
+// ============================================
+
+model PromptVersion {
+  id               String       @id @default(uuid())
+  organizationId   String
+  repositoryId     String?
+  name             String
+  type             PromptType
+  contentType      ContentType?
+  template         String       @db.Text
+  variables        String[]     @default([])
+  isActive         Boolean      @default(true)
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository Repository? @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([repositoryId])
+  @@index([type])
+  @@index([contentType])
+}
+
+enum PromptType {
+  system
+  content_type
+  repo_override
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id             String             @id @default(uuid())
+  organizationId String
+  userId         String?
+  event          NotificationEvent
+  channel        NotificationChannel
+  payload        Json
+  status         NotificationStatus @default(pending)
+  sentAt         DateTime?
+  error          String?
+  createdAt      DateTime           @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([event])
+  @@index([channel])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum NotificationEvent {
+  draft_created
+  review_requested
+  publish_scheduled
+  publish_due
+  publish_failed
+  review_completed
+}
+
+enum NotificationChannel {
+  email
+  slack
+  discord
+  teams
+  in_app
+  webhook
+}
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+
+model UserIntegration {
+  id            String   @id @default(uuid())
+  userId        String
+  provider      Provider
+  providerUserId String
+  accessToken   String   // Encrypted
+  refreshToken  String?  // Encrypted
+  scopes        String[]
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+// ============================================
+// ANALYTICS & QUOTAS
+// ============================================
+
+model AnalyticsEvent {
+  id             String   @id @default(uuid())
+  organizationId String
+  event          String
+  properties     Json
+  userId         String?
+  contentPieceId String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([event])
+  @@index([createdAt])
+  @@index([contentPieceId])
+}
+
+model FreeTierQuota {
+  id             String   @id @default(uuid())
+  organizationId String
+  provider       QuotaProvider
+  resource       String
+  used           Int      @default(0)
+  limit          Int
+  periodStart    DateTime @default(now())
+  periodEnd      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, provider, resource, periodStart])
+  @@index([organizationId])
+  @@index([provider])
+}
+
+enum QuotaProvider {
+  github_actions
+  supabase_db
+  supabase_edge
+  supabase_realtime
+  supabase_storage
+  vercel_bandwidth
+  openrouter
+  nvidia
+  github_models
+}
+
+// ============================================
+// WEBHOOKS
+// ============================================
+
+model WebhookEvent {
+  id              String   @id @default(uuid())
+  provider        Provider
+  eventType       String
+  providerEventId String
+  payload         Json
+  signature       String
+  processed       Boolean  @default(false)
+  processedAt     DateTime?
+  error           String?
+  createdAt       DateTime @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([provider])
+  @@index([processed])
+  @@index([createdAt])
+}

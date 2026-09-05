@@ -1,0 +1,113 @@
+# VivaScribe Cursor Rules
+
+## Project Context
+- **Project**: VivaScribe - Content management ecosystem on top of git repos
+- **Stack**: TypeScript, Node.js 20+, React 18, Vite, Tailwind, Supabase, Vercel
+- **Architecture**: TurboRepo monorepo (apps/api, apps/web, packages/shared)
+- **Deployment**: Vercel (frontend) + Supabase (backend, DB, Auth, Edge Functions, Realtime, Storage)
+- **CI/CD**: GitHub Actions on PUBLIC cover repo (unlimited free minutes)
+- **LLM**: Free tier only - GitHub Models → OpenRouter free → NVIDIA NIM free → Google AI Studio free
+
+## Development Principles
+
+### AI-Driven Development
+- Use Cursor Composer for multi-file changes
+- Use Cursor Chat for exploration and debugging
+- Write tests FIRST (Vitest for unit, Playwright for E2E)
+- AI generates implementation from specs (decisions, procedures)
+- Human reviews AI output before commit
+
+### Code Style
+- TypeScript strict mode everywhere
+- Zod schemas for all external boundaries (API, DB, forms)
+- Neverthrow Result types for error handling
+- Functional core, imperative shell
+- Colocate related code (routes with handlers, components with hooks)
+
+### Architecture Rules
+- **Shared package** (`@vivascribe/shared`): Types, utils, config, Prisma schema - NO business logic
+- **API** (`apps/api`): Fastify + Zod validation, Supabase client, Edge Functions for scheduled jobs
+- **Web** (`apps/web`): React + TanStack Query + Zustand, Vite, Tailwind
+- **Database**: Prisma + Supabase RLS (Row Level Security) for multi-tenancy
+- **Auth**: Supabase Auth with GitHub/GitLab OAuth only
+- **Real-time**: Supabase Realtime (not WebSocket server)
+
+### Free Tier Constraints (Guardrail: zero-infra-cost)
+- **Vercel**: 100GB bandwidth, Edge Functions
+- **Supabase**: 500MB DB, 1GB storage, 2M Edge Function invocations, 50K MAU Auth
+- **GitHub Actions**: Unlimited on public cover repo, minimal on private
+- **LLM**: Free tiers only, aggressive caching, fallback chain
+
+## File Patterns
+
+### API Routes
+```typescript
+// apps/api/src/routes/resource.ts
+fastify.get('/api/v1/resource', {
+  schema: {
+    querystring: PaginationParamsSchema.extend({...}),
+    response: { 200: ApiResponseSchema(PaginatedResponseSchema(ResourceSchema)) }
+  }
+}, async (request, reply) => {
+  // Implementation
+});
+```
+
+### React Components
+```typescript
+// apps/web/src/components/Component.tsx
+import { useQuery } from '@tanstack/react-query';
+import { axiosInstance } from '../lib/axios';
+
+export function Component() {
+  const { data, isLoading } = useQuery({...});
+  // Render
+}
+```
+
+### Shared Types
+```typescript
+// packages/shared/src/types/index.ts
+export const EntitySchema = z.object({...});
+export type Entity = z.infer<typeof EntitySchema>;
+```
+
+## Commands
+- `npm run dev` - Start all apps
+- `npm run build` - Build all apps
+- `npm run lint` - Lint all packages
+- `npm run typecheck` - Typecheck all packages
+- `npm run test` - Run all tests
+- `npm run db:generate` - Generate Prisma client
+- `npm run db:push` - Push schema to DB
+- `npm run db:studio` - Open Prisma Studio
+
+## Testing
+- Unit tests: Vitest, colocated with source (`*.test.ts`)
+- E2E tests: Playwright in `apps/web/e2e/`
+- Test API routes with `fastify.inject()`
+- Test React components with `@testing-library/react`
+
+## Git Workflow
+- Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
+- PR title follows conventional commits
+- AI reviews PRs first (Copilot), then human
+- Branch naming: `feature/`, `fix/`, `refactor/`, `docs/`
+
+## Security
+- All DB queries scoped by `org_id` (RLS + Prisma middleware)
+- Supabase JWT contains `org_id` claim
+- Webhook signature verification mandatory
+- Secrets in Vercel/Supabase/GitHub secrets only
+
+## Performance
+- TanStack Query for server state (5min staleTime)
+- Supabase Realtime for live updates
+- Aggressive LLM response caching (24h TTL)
+- Pagination everywhere (default 20, max 100)
+
+## Monitoring
+- Structured logging with Pino + request IDs
+- Vercel Analytics + Supabase Dashboard
+- GitHub Actions workflow for quota alerts
+- Error tracking via Sentry free tier

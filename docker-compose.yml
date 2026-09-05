@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: supabase/postgres:15.1.0.117
+    container_name: vivascribe-postgres
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "54322:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: vivascribe-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Supabase local development (run via `supabase start` instead)
+  # This docker-compose is for standalone DB/Redis if not using Supabase CLI
+
+volumes:
+  postgres_data:
+  redis_data:
