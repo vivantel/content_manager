@@ -1,6 +1,6 @@
 import { Result, ok, err } from 'neverthrow';
 
-export function createResult<T, E>(value: T | Promise<T>, errorFn?: (e: unknown) => E): Result<T, E> {
+export async function createResult<T, E>(value: T | Promise<T>, errorFn?: (e: unknown) => E): Promise<Result<T, E>> {
   try {
     const result = value instanceof Promise ? await value : value;
     return ok(result);
