@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { slugify, truncate, generateRequestId, parseJsonSafe, omit, pick } from '../index';
+import { slugify, truncate, generateRequestId, parseJsonSafe, omit, pick } from './index';
 
 describe('utils', () => {
   it('slugify works', () => {
