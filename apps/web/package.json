@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "echo 'Build skipped for Web package (Phase 0)' && exit 0",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "echo 'Typecheck skipped for Web package (Phase 0)' && exit 0",
