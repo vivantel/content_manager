@@ -16,7 +16,13 @@
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": false,
     "noImplicitReturns": false,
-    "strict": false
+    "strict": false,
+    "noImplicitAny": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": false,
+    "alwaysStrict": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

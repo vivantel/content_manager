@@ -20,7 +20,8 @@
     "noImplicitAny": false,
     "strictNullChecks": false,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "strict": false
   },
   "include": ["src", "vite.config.ts", "src/vite-env.d.ts"],
   "exclude": ["node_modules", "dist"]
