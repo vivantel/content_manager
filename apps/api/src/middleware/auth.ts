@@ -57,7 +57,7 @@ export async function authMiddleware(request: FastifyRequest, reply: FastifyRepl
 
     request.user = {
       id: user.id,
-      email: user.email!,
+      email: user.email,
       organizationId: membership.organization_id,
       role: membership.role,
     };
