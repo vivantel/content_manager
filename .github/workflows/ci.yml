@@ -214,4 +214,3 @@ jobs:
                 }
               ]
             }
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
