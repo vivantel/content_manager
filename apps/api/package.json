@@ -9,29 +9,30 @@
     "lint": "eslint src --ext .ts -c .eslintrc.cjs",
     "typecheck": "echo 'Typecheck skipped for API package (Phase 0)' && exit 0",
     "test": "vitest run",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio",
-    "db:migrate": "prisma migrate dev"
+    "db:generate": "prisma generate --schema=../../packages/shared/prisma/schema.prisma",
+    "db:push": "prisma db push --schema=../../packages/shared/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema=../../packages/shared/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema=../../packages/shared/prisma/schema.prisma"
   },
   "dependencies": {
-    "@vivascribe/shared": "^0.0.0",
     "@prisma/client": "^5.15.0",
+    "@supabase/supabase-js": "^2.44.0",
+    "@vivascribe/shared": "^0.0.0",
+    "crypto-js": "^4.2.0",
     "fastify": "^4.28.0",
     "fastify-type-provider-zod": "^1.2.0",
-    "zod": "^3.23.0",
-    "@supabase/supabase-js": "^2.44.0",
+    "jose": "^6.2.12",
+    "neverthrow": "^7.0.0",
     "pino": "^9.0.0",
     "pino-pretty": "^11.0.0",
-    "neverthrow": "^7.0.0",
-    "crypto-js": "^4.2.0"
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "typescript": "^5.5.0",
-    "tsx": "^4.15.0",
-    "vitest": "^2.0.0",
-    "@types/node": "^20.14.0",
     "@types/crypto-js": "^4.2.0",
-    "prisma": "^5.15.0"
+    "@types/node": "^20.14.0",
+    "prisma": "^5.15.0",
+    "tsx": "^4.15.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
   }
 }

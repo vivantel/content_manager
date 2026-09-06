@@ -29,7 +29,7 @@ model Organization {
   channels PublishingChannel[]
   prompts PromptVersion[]
   notifications Notification[]
-  members User[]
+  members User[] @relation("OrganizationMembers")
 
   @@index([slug])
 }
@@ -45,9 +45,11 @@ model User {
   updatedAt     DateTime @updatedAt
 
   memberships Membership[]
+  organizations Organization[] @relation("OrganizationMembers")
   reviews ContentReview[]
   notifications Notification[]
   integrations UserIntegration[]
+  contentVersions ContentVersion[] @relation("ContentVersionEditor")
 
   @@index([email])
   @@index([githubId])
@@ -211,7 +213,7 @@ model ContentVersion {
   createdAt       DateTime @default(now())
 
   contentPiece ContentPiece @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
-  editor User @relation(fields: [editorId], references: [id], onDelete: Cascade)
+  editor User @relation("ContentVersionEditor", fields: [editorId], references: [id], onDelete: Cascade)
 
   @@index([contentPieceId])
   @@index([createdAt])
@@ -377,6 +379,12 @@ enum NotificationChannel {
   webhook
 }
 
+enum NotificationStatus {
+  pending
+  sent
+  failed
+}
+
 // ============================================
 // INTEGRATIONS
 // ============================================
@@ -396,6 +404,21 @@ model UserIntegration {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
+  @@index([userId])
+}
+
+model NotificationPreference {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  event          NotificationEvent
+  channel        NotificationChannel
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, userId, event, channel])
+  @@index([organizationId])
   @@index([userId])
 }
 
@@ -445,6 +468,25 @@ enum QuotaProvider {
   openrouter
   nvidia
   github_models
+}
+
+// LLM Usage Tracking
+model LLMUsage {
+  id                String   @id @default(uuid())
+  organizationId    String
+  provider          String
+  model             String
+  contentType       String
+  promptTokens      Int
+  completionTokens  Int
+  totalTokens       Int
+  contentPieceId    String?
+  createdAt         DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([provider])
+  @@index([contentType])
+  @@index([createdAt])
 }
 
 // ============================================

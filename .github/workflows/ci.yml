@@ -187,30 +187,21 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Send notification
-        uses: slackapi/slack-github-action@v1.24.0
+      - name: Send Telegram notification
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          payload: |
-            {
-              "text": "CI/CD Pipeline ${{ job.status }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*CI/CD Pipeline ${{ job.status }}* for `${{ github.repository }}`"
-                  }
-                },
-                {
-                  "type": "context",
-                  "elements": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "Branch: `${{ github.ref_name }}` | Commit: `${{ github.sha }}` | Run: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
-                    }
-                  ]
-                }
-              ]
-            }
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CI_CHAT_ID }}
+        run: |
+          STATUS="${{ job.status }}"
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          COMMIT="${{ github.sha }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          MESSAGE="*CI/CD Pipeline $STATUS* for \`$REPO\`
+Branch: \`$BRANCH\` | Commit: \`$COMMIT\` | Run: [View Run]($RUN_URL)"
+          
+          curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+            -d chat_id="$TELEGRAM_CHAT_ID" \
+            -d text="$MESSAGE" \
+            -d parse_mode="Markdown"

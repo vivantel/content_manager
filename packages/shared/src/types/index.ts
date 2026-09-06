@@ -19,6 +19,7 @@ export const UserSchema = z.object({
   avatarUrl: z.string().url().optional(),
   githubId: z.string().optional(),
   gitlabId: z.string().optional(),
+  telegramChatId: z.string().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -168,7 +169,7 @@ export const PromptVersionSchema = z.object({
 export type PromptVersion = z.infer<typeof PromptVersionSchema>;
 
 // Notification
-export const NotificationChannelSchema = z.enum(['email', 'slack', 'discord', 'teams', 'in_app', 'webhook']);
+export const NotificationChannelSchema = z.enum(['email', 'telegram', 'discord', 'teams', 'in_app', 'webhook']);
 export type NotificationChannel = z.infer<typeof NotificationChannelSchema>;
 
 export const NotificationEventSchema = z.enum([
