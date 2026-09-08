@@ -8,7 +8,6 @@ on:
 
 env:
   NODE_VERSION: '20'
-  SUPABASE_PROJECT_REF: aktidqzxlcpecjmwwjbn
 
 jobs:
   lint:
@@ -86,12 +85,12 @@ jobs:
       - name: Install Supabase CLI
         run: npm install -g supabase@latest
       - name: Deploy Edge Functions
-        run: supabase functions deploy --project-ref ${{ env.SUPABASE_PROJECT_REF }}
+        run: supabase functions deploy --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         working-directory: apps/api
       - name: Run Database Migrations
-        run: supabase db push --project-ref ${{ env.SUPABASE_PROJECT_REF }}
+        run: supabase db push --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         working-directory: apps/api
