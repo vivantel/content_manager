@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 declare global {
   // eslint-disable-next-line no-var
   // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+  // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
 }
 
