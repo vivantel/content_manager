@@ -1,8 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import type { PrismaClient as PrismaClientType } from '@prisma/client';
 
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientType | undefined;
+  prisma: PrismaClient | undefined;
 };
 
 const prismaClientSingleton = () => {
