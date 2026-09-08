@@ -1,10 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import type { PrismaClient as PrismaClientType } from '@prisma/client';
 
 // eslint-disable-next-line no-var
 declare global {
   // eslint-disable-next-line no-var
-  var prisma: PrismaClientType | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+  var prisma: PrismaClient | undefined;
 }
 
 const prismaClientSingleton = () => {
