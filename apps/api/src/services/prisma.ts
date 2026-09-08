@@ -1,12 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
-// eslint-disable-next-line no-var
-declare global {
-  // eslint-disable-next-line no-var
-  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
-}
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
@@ -14,10 +10,10 @@ const prismaClientSingleton = () => {
   });
 };
 
-export const prisma = global.prisma ?? prismaClientSingleton();
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
 
 if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
+  globalForPrisma.prisma = prisma;
 }
 
 export default prisma;
