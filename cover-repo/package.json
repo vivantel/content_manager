@@ -1,0 +1,15 @@
+{
+  "name": "git-poller",
+  "version": "1.0.0",
+  "description": "GitHub/GitLab polling scripts for VivaScribe",
+  "type": "module",
+  "scripts": {
+    "poll:github": "node scripts/poll-github.js",
+    "poll:gitlab": "node scripts/poll-gitlab.js",
+    "dispatch": "node scripts/dispatch-events.js"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.0",
+    "@gitbeaker/rest": "^40.0.0"
+  }
+}
