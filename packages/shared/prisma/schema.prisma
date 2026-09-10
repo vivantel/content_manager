@@ -172,6 +172,7 @@ model ContentPiece {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   repository Repository? @relation(fields: [repositoryId], references: [id], onDelete: SetNull)
+  promptVersion PromptVersion? @relation(fields: [promptVersionId], references: [id], onDelete: SetNull)
   versions ContentVersion[]
   reviews ContentReview[]
   publishJobs PublishJob[]
@@ -321,6 +322,7 @@ model PromptVersion {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   repository Repository? @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  contentPieces ContentPiece[]
 
   @@index([organizationId])
   @@index([repositoryId])

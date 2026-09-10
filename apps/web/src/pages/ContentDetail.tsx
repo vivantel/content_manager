@@ -1,13 +1,13 @@
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { axiosInstance } from '../lib/axios';
-import { ContentPiece, ContentReview } from '@vivascribe/shared/types';
+import { ContentPieceDetail, ContentPiece, ContentVersion, ContentReview } from '@vivascribe/shared/types';
 
 export function ContentDetail() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   
-  const { data: piece, isLoading, refetch } = useQuery<ContentPiece>({
+  const { data: piece, isLoading } = useQuery<ContentPieceDetail>({
     queryKey: ['content', id],
     queryFn: async () => {
       const response = await axiosInstance.get(`/api/v1/content/${id}`);

@@ -60,7 +60,7 @@ export async function getInstallationId(
     throw new Error(`Failed to fetch installations: ${response.statusText}`);
   }
 
-  const installations: GitHubInstallation[] = await response.json();
+  const installations = (await response.json()) as GitHubInstallation[];
   const installation = installations.find(
     (i) => i.account.login.toLowerCase() === owner.toLowerCase()
   );
@@ -88,7 +88,7 @@ export async function getInstallationToken(
     throw new Error(`Failed to create installation token: ${response.statusText}`);
   }
 
-  return response.json();
+  return response.json() as Promise<InstallationToken>;
 }
 
 export async function getValidInstallationToken(
@@ -134,7 +134,7 @@ export async function getInstallationTokenForRepo(
     throw new Error(`Failed to fetch installations: ${response.statusText}`);
   }
 
-  const installations: GitHubInstallation[] = await response.json();
+  const installations = (await response.json()) as GitHubInstallation[];
   
   for (const installation of installations) {
     // Check if this installation has access to the repo

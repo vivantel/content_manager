@@ -79,13 +79,13 @@ export const ContentPieceSchema = z.object({
   contentHtml: z.string().optional(),
   frontMatter: z.record(z.unknown()).optional(),
   targetChannels: z.array(z.string()).default([]),
-  scheduledAt: z.date().optional(),
-  publishedAt: z.date().optional(),
+  scheduledAt: z.string().datetime().optional(),
+  publishedAt: z.string().datetime().optional(),
   promptVersionId: z.string().uuid().optional(),
   triggeringEventId: z.string().uuid().optional(),
   metadata: z.record(z.unknown()).optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 export type ContentPiece = z.infer<typeof ContentPieceSchema>;
 
@@ -98,7 +98,7 @@ export const ContentVersionSchema = z.object({
   frontMatter: z.record(z.unknown()).optional(),
   editorId: z.string().uuid(),
   changeSummary: z.string().optional(),
-  createdAt: z.date(),
+  createdAt: z.string().datetime(),
 });
 export type ContentVersion = z.infer<typeof ContentVersionSchema>;
 
@@ -112,7 +112,7 @@ export const ContentReviewSchema = z.object({
   reviewerId: z.string().uuid(),
   action: ReviewActionSchema,
   comment: z.string().optional(),
-  createdAt: z.date(),
+  createdAt: z.string().datetime(),
 });
 export type ContentReview = z.infer<typeof ContentReviewSchema>;
 
@@ -126,8 +126,8 @@ export const RepoEventSchema = z.object({
   type: RepoEventTypeSchema,
   providerEventId: z.string(),
   payload: z.record(z.unknown()),
-  processedAt: z.date().optional(),
-  createdAt: z.date(),
+  processedAt: z.string().datetime().optional(),
+  createdAt: z.string().datetime(),
 });
 export type RepoEvent = z.infer<typeof RepoEventSchema>;
 
@@ -167,6 +167,21 @@ export const PromptVersionSchema = z.object({
   updatedAt: z.date(),
 });
 export type PromptVersion = z.infer<typeof PromptVersionSchema>;
+
+// ContentPieceDetail - Extended ContentPiece with relations for detail view
+export const ContentPieceDetailSchema = ContentPieceSchema.extend({
+  repository: RepositorySchema.optional(),
+  versions: z.array(ContentVersionSchema).optional(),
+  reviews: z.array(ContentReviewSchema.extend({
+    reviewer: z.object({
+      id: z.string().uuid(),
+      name: z.string().optional(),
+      email: z.string().email(),
+    }),
+  })).optional(),
+  promptVersion: PromptVersionSchema.optional(),
+});
+export type ContentPieceDetail = z.infer<typeof ContentPieceDetailSchema>;
 
 // Notification
 export const NotificationChannelSchema = z.enum(['email', 'telegram', 'discord', 'teams', 'in_app', 'webhook']);
@@ -230,6 +245,14 @@ export const PaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =
     limit: z.number().int().positive(),
     totalPages: z.number().int().nonnegative(),
   });
+
+export type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
 
 // Repo Sync State
 export const RepoSyncStateSchema = z.object({

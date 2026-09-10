@@ -14,6 +14,9 @@ declare module 'fastify' {
     };
     requestId: string;
   }
+  interface FastifyInstance {
+    authMiddleware: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+  }
 }
 
 export async function authMiddleware(request: FastifyRequest, reply: FastifyReply) {
