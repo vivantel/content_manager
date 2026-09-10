@@ -8,6 +8,7 @@ on:
 
 env:
   NODE_VERSION: '20'
+  AWS_REGION: eu-north-1
 
 jobs:
   lint:
@@ -95,8 +96,40 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         working-directory: apps/api
 
-  deploy-vercel:
-    name: Deploy to Vercel
+  deploy-aws-lambda:
+    name: Deploy API to AWS Lambda
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: api-dist
+          path: apps/api/dist/
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy to AWS Lambda
+        run: |
+          cd apps/api/dist
+          zip -r function.zip .
+          aws lambda update-function-code \
+            --function-name vivascribe-api \
+            --zip-file fileb://function.zip \
+            --region ${{ env.AWS_REGION }}
+      - name: Update Lambda Environment Variables
+        run: |
+          aws lambda update-function-configuration \
+            --function-name vivascribe-api \
+            --environment Variables="{SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }},SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }},OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }},TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }},GITHUB_APP_ID=${{ secrets.VIVASCRIBE_GITHUB_APP_ID }},GITHUB_PRIVATE_KEY=${{ secrets.VIVASCRIBE_GITHUB_PRIVATE_KEY }},GITHUB_WEBHOOK_SECRET=${{ secrets.VIVASCRIBE_GITHUB_WEBHOOK_SECRET }},GITHUB_CLIENT_ID=${{ secrets.VIVASCRIBE_GITHUB_CLIENT_ID }},GITHUB_CLIENT_SECRET=${{ secrets.VIVASCRIBE_GITHUB_CLIENT_SECRET }}" \
+            --region ${{ env.AWS_REGION }}
+
+  deploy-web:
+    name: Deploy Web to Cloudflare Pages
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -106,13 +139,11 @@ jobs:
         with:
           name: web-dist
           path: apps/web/dist/
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          working-directory: apps/web
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: vivascribe-web
+          directory: apps/web/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
