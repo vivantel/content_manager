@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
 env:
   NODE_VERSION: '20'
   AWS_REGION: eu-north-1
+  TF_VERSION: '1.8'
 
 jobs:
   lint:
@@ -47,10 +48,69 @@ jobs:
       - run: npm ci
       - run: npm run test
 
+  terraform:
+    name: Terraform Plan & Apply
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform Init
+        run: cd terraform && terraform init
+      - name: Terraform Plan
+        run: cd terraform && terraform plan -out=tfplan
+        env:
+          TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TF_VAR_supabase_organization_id: ${{ secrets.SUPABASE_ORGANIZATION_ID }}
+          TF_VAR_github_app_id: ${{ secrets.VIVASCRIBE_GITHUB_APP_ID }}
+          TF_VAR_github_app_private_key: ${{ secrets.VIVASCRIBE_GITHUB_PRIVATE_KEY }}
+          TF_VAR_github_webhook_secret: ${{ secrets.VIVASCRIBE_GITHUB_WEBHOOK_SECRET }}
+          TF_VAR_github_client_id: ${{ secrets.VIVASCRIBE_GITHUB_CLIENT_ID }}
+          TF_VAR_github_client_secret: ${{ secrets.VIVASCRIBE_GITHUB_CLIENT_SECRET }}
+          TF_VAR_openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          TF_VAR_nvidia_api_key: ${{ secrets.NVIDIA_API_KEY }}
+          TF_VAR_github_models_api_key: ${{ secrets.GITHUB_MODELS_API_KEY }}
+          TF_VAR_google_ai_api_key: ${{ secrets.GOOGLE_AI_API_KEY }}
+          TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          TF_VAR_telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TF_VAR_telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TF_VAR_slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TF_VAR_discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TF_VAR_teams_webhook_url: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
+          TF_VAR_gitlab_token: ${{ secrets.GITLAB_TOKEN }}
+          TF_VAR_github_client_id: ${{ secrets.VIVASCRIBE_GITHUB_CLIENT_ID }}
+          TF_VAR_github_client_secret: ${{ secrets.VIVASCRIBE_GITHUB_CLIENT_SECRET }}
+          TF_VAR_gitlab_client_id: ${{ secrets.GITLAB_CLIENT_ID }}
+          TF_VAR_gitlab_client_secret: ${{ secrets.GITLAB_CLIENT_SECRET }}
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          TF_VAR_supabase_organization_id: ${{ secrets.SUPABASE_ORGANIZATION_ID }}
+          TF_VAR_aws_region: ${{ env.AWS_REGION }}
+          TF_VAR_aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+          TF_VAR_cloudflare_zone_name: vivantel.dev
+          TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: cd terraform && terraform apply -auto-approve tfplan
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test]
+    needs: [lint, typecheck, test, terraform]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -71,11 +131,59 @@ jobs:
           path: apps/web/dist/
           retention-days: 7
 
+  deploy-lambda:
+    name: Deploy Lambda
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: api-dist
+          path: apps/api/dist/
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy Lambda
+        run: |
+          cd apps/api/dist
+          zip -r function.zip .
+          aws lambda update-function-code \
+            --function-name vivascribe-api \
+            --zip-file fileb://function.zip \
+            --region ${{ env.AWS_REGION }}
+
+  deploy-web:
+    name: Deploy Web (Cloudflare Pages)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist/
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: vivascribe
+          directory: apps/web/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
   deploy-supabase:
     name: Deploy Supabase Edge Functions & DB
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -95,55 +203,3 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         working-directory: apps/api
-
-  deploy-aws-lambda:
-    name: Deploy API to AWS Lambda
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: api-dist
-          path: apps/api/dist/
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-      - name: Deploy to AWS Lambda
-        run: |
-          cd apps/api/dist
-          zip -r function.zip .
-          aws lambda update-function-code \
-            --function-name vivascribe-api \
-            --zip-file fileb://function.zip \
-            --region ${{ env.AWS_REGION }}
-      - name: Update Lambda Environment Variables
-        run: |
-          aws lambda update-function-configuration \
-            --function-name vivascribe-api \
-            --environment Variables="{SUPABASE_URL=${{ secrets.SUPABASE_URL }},SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }},SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }},OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }},TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }},GITHUB_APP_ID=${{ secrets.VIVASCRIBE_GITHUB_APP_ID }},GITHUB_PRIVATE_KEY=${{ secrets.VIVASCRIBE_GITHUB_PRIVATE_KEY }},GITHUB_WEBHOOK_SECRET=${{ secrets.VIVASCRIBE_GITHUB_WEBHOOK_SECRET }},GITHUB_CLIENT_ID=${{ secrets.VIVASCRIBE_GITHUB_CLIENT_ID }},GITHUB_CLIENT_SECRET=${{ secrets.VIVASCRIBE_GITHUB_CLIENT_SECRET }}" \
-            --region ${{ env.AWS_REGION }}
-
-  deploy-web:
-    name: Deploy Web to Cloudflare Pages
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: apps/web/dist/
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: vivascribe-web
-          directory: apps/web/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
