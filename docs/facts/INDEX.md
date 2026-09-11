@@ -19,3 +19,7 @@
 | 0015 | CI Workflow Secret Conditionals | active | architecture, ci, github-actions, phase0 |
 | 0016 | Slack GitHub Action Input Fix | active | architecture, ci, github-actions, slack |
 | 0017 | Phase 1.1 GitHub/GitLab Webhook Edge Functions | active | architecture, phase1, edge-functions, webhooks, github, gitlab |
+| 0018 | Terraform Module Structure | active | terraform, modules, structure, architecture |
+| 0019 | Supabase Terraform Resources | active | supabase, terraform, resources, provider |
+| 0020 | Cloudflare Terraform Resources | active | cloudflare, terraform, resources, dns, pages, waf |
+| 0021 | AWS Lambda Configuration | active | aws, lambda, configuration, free-tier, serverless |

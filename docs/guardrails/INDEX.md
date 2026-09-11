@@ -9,3 +9,6 @@
 | Web Dashboard Required for Content Review | active | product, review, dashboard, ui |
 | Scheduled and Manual Publish with Reminders | active | product, scheduling, publishing, reminders |
 | Zero Infrastructure Cost via SaaS Free Tiers | active | architecture, cost, saas, constraints, deployment |
+| Terraform Execution via OIDC | active | terraform, github-actions, oidc, security, ci-cd |
+| S3 State with Object Lock | active | terraform, state, s3, object-lock, locking, free-tier |
+| Secrets via KMS-SSM | active | secrets, kms, ssm, security, lambda, terraform |

@@ -16,3 +16,7 @@
 | 0012 | Content Planning UI | active | product | product, ui, planning, calendar |
 | 0013 | Analytics | active | product | product, analytics, metrics, attribution |
 | 0014 | MVP Scope | active | product | product, mvp, scope, roadmap |
+| 0015 | Deployment Architecture | active | process | architecture, deployment, infrastructure, terraform, supabase, cloudflare, aws |
+| 0016 | Terraform State Backend | active | process | terraform, state, s3, object-lock, backend |
+| 0017 | Secrets Management Pattern | active | process | secrets, kms, ssm, security, terraform, github-actions |
+| 0018 | Full IaC Scope | active | process | terraform, iac, supabase, cloudflare, aws, github, scope |
