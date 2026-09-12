@@ -79,7 +79,7 @@ jobs:
           TF_VAR_github_client_secret: ${{ secrets.VIVASCRIBE_GITHUB_CLIENT_SECRET }}
           TF_VAR_openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
           TF_VAR_nvidia_api_key: ${{ secrets.NVIDIA_API_KEY }}
-          TF_VAR_github_models_api_key: ${{ secrets.GITHUB_MODELS_API_KEY }}
+          TF_VAR_github_models_api_key: ${{ secrets.GH_MODELS_API_KEY }}
           TF_VAR_google_ai_api_key: ${{ secrets.GOOGLE_AI_API_KEY }}
           TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
           TF_VAR_telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
