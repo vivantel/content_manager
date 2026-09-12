@@ -1,0 +1,123 @@
+name: Bootstrap AWS Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "bootstrap" to confirm'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Bootstrap AWS Infrastructure
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-north-1
+
+      - name: Create S3 State Bucket with Object Lock
+        run: |
+          aws s3api create-bucket \
+            --bucket vivascribe-terraform-state-661444883674-eu-north-1 \
+            --region eu-north-1 \
+            --object-lock-enabled-for-bucket || echo "Bucket may already exist"
+          
+          aws s3api put-bucket-versioning \
+            --bucket vivascribe-terraform-state-661444883674-eu-north-1 \
+            --versioning-configuration Status=Enabled
+
+      - name: Create OIDC Provider
+        run: |
+          aws iam list-open-id-connect-providers | grep -q token.actions.githubusercontent.com || \
+            aws iam create-open-id-connect-provider \
+              --url https://token.actions.githubusercontent.com \
+              --client-id-list sts.amazonaws.com \
+              --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+
+      - name: Create Terraform Execution Role
+        run: |
+          cat > trust-policy.json << 'EOF'
+          {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::661444883674:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                },
+                "StringLike": {
+                  "token.actions.githubusercontent.com:sub": "repo:vivantel/content_manager:*"
+                }
+              }
+            }]
+          }
+          EOF
+
+          aws iam create-role \
+            --role-name vivascribe-terraform-role \
+            --assume-role-policy-document file://trust-policy.json || echo "Role may already exist"
+
+      - name: Attach Permissions Policy
+        run: |
+          cat > terraform-permissions.json << 'EOF'
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "lambda:*",
+                  "iam:CreateRole", "iam:DeleteRole", "iam:PutRolePolicy", "iam:DeleteRolePolicy",
+                  "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:GetRole",
+                  "kms:CreateAlias", "kms:DescribeKey", "kms:ListAliases",
+                  "ssm:PutParameter", "ssm:DeleteParameter", "ssm:GetParameter",
+                  "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket",
+                  "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms",
+                  "logs:CreateLogGroup", "logs:PutRetentionPolicy"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+          EOF
+
+          aws iam put-role-policy \
+            --role-name vivascribe-terraform-role \
+            --policy-name TerraformPermissions \
+            --policy-document file://terraform-permissions.json
+
+      - name: Create KMS Alias
+        run: |
+          aws kms create-alias \
+            --alias-name alias/vivascribe-secrets \
+            --target-key-id alias/aws/ssm || echo "Alias may already exist"
+
+      - name: Verify Setup
+        run: |
+          echo "=== Bucket ==="
+          aws s3api get-bucket-versioning --bucket vivascribe-terraform-state-661444883674-eu-north-1
+          aws s3api get-object-lock-configuration --bucket vivascribe-terraform-state-661444883674-eu-north-1
+          
+          echo "=== OIDC Provider ==="
+          aws iam list-open-id-connect-providers | grep token.actions.githubusercontent.com
+          
+          echo "=== Role ==="
+          aws iam get-role --role-name vivascribe-terraform-role --query 'Role.Arn'
+          
+          echo "=== KMS Alias ==="
+          aws kms describe-key --key-id alias/vivascribe-secrets --query 'KeyMetadata.KeyManager'
