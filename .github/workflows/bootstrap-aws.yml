@@ -45,7 +45,7 @@ jobs:
               --client-id-list sts.amazonaws.com \
               --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
 
-      - name: Create/Update Terraform Execution Role
+      - name: Update Terraform Execution Role Trust Policy
         run: |
           cat > trust-policy.json << 'EOF'
           {
@@ -61,16 +61,13 @@ jobs:
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
                 },
                 "StringLike": {
-                  "token.actions.githubusercontent.com:sub": "repo:vivantel/content_manager:ref:refs/heads/master"
+                  "token.actions.githubusercontent.com:sub": "repo:vivantel/content_manager:*"
                 }
               }
             }]
           }
           EOF
 
-          aws iam create-role \
-            --role-name vivascribe-terraform-role \
-            --assume-role-policy-document file://trust-policy.json || \
           aws iam update-assume-role-policy \
             --role-name vivascribe-terraform-role \
             --policy-document file://trust-policy.json
@@ -103,6 +100,31 @@ jobs:
             --role-name vivascribe-terraform-role \
             --policy-name TerraformPermissions \
             --policy-document file://terraform-permissions.json
+
+      - name: Create KMS Alias
+        run: |
+          aws kms create-alias \
+            --alias-name alias/vivascribe-secrets \
+            --target-key-id alias/aws/ssm || echo "Alias may already exist"
+
+      - name: Create S3 State Bucket with Object Lock
+        run: |
+          aws s3api create-bucket \
+            --bucket vivascribe-terraform-state-661444883674-eu-north-1 \
+            --region eu-north-1 \
+            --object-lock-enabled-for-bucket || echo "Bucket may already exist"
+          
+          aws s3api put-bucket-versioning \
+            --bucket vivascribe-terraform-state-661444883674-eu-north-1 \
+            --versioning-configuration Status=Enabled
+
+      - name: Create OIDC Provider
+        run: |
+          aws iam list-open-id-connect-providers | grep -q token.actions.githubusercontent.com || \
+            aws iam create-open-id-connect-provider \
+              --url https://token.actions.githubusercontent.com \
+              --client-id-list sts.amazonaws.com \
+              --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
 
       - name: Create KMS Alias
         run: |
