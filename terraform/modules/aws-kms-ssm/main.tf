@@ -1,11 +1,9 @@
-# KMS Alias for SSM Parameter Store Encryption
+# AWS KMS + SSM Module
 
 resource "aws_kms_alias" "secrets" {
   name          = "alias/vivascribe-secrets"
   target_key_id = "alias/aws/ssm"
 }
-
-# SSM Parameters for Application Secrets
 
 resource "aws_ssm_parameter" "secrets" {
   for_each = var.secrets

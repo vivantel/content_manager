@@ -1,7 +1,5 @@
-# Production Environment Composition
-
 module "aws_kms_ssm" {
-  source = "../../modules/aws-kms-ssm"
+  source = "./modules/aws-kms-ssm"
   
   environment = var.environment
   secrets = {
@@ -19,7 +17,7 @@ module "aws_kms_ssm" {
 }
 
 module "supabase" {
-  source = "../../modules/supabase"
+  source = "./modules/supabase"
   
   environment                = var.environment
   supabase_db_password       = var.supabase_db_password
@@ -42,33 +40,15 @@ module "supabase" {
   gitlab_token               = var.gitlab_token
 }
 
-module "aws_kms_ssm" {
-  source = "../../modules/aws-kms-ssm"
-  
-  environment = var.environment
-  secrets = {
-    SUPABASE_URL               = module.supabase.project_url
-    SUPABASE_ANON_KEY          = module.supabase.anon_key
-    SUPABASE_SERVICE_ROLE_KEY  = module.supabase.service_role_key
-    OPENROUTER_API_KEY         = var.openrouter_api_key
-    TELEGRAM_BOT_TOKEN         = var.telegram_bot_token
-    GITHUB_APP_ID              = var.github_app_id
-    GITHUB_PRIVATE_KEY         = var.github_app_private_key
-    GITHUB_WEBHOOK_SECRET      = var.github_webhook_secret
-    GITHUB_CLIENT_ID           = var.github_client_id
-    GITHUB_CLIENT_SECRET       = var.github_client_secret
-  }
-}
-
 module "aws_lambda" {
-  source = "../../modules/aws-lambda"
+  source = "./modules/aws-lambda"
   
   aws_region   = var.aws_region
   environment  = var.environment
 }
 
 module "cloudflare" {
-  source = "../../modules/cloudflare"
+  source = "./modules/cloudflare"
   
   cloudflare_zone_name   = var.cloudflare_zone_name
   cloudflare_account_id  = var.cloudflare_account_id
