@@ -9,21 +9,22 @@ on:
         type: string
 
 permissions:
+  id-token: write
   contents: read
 
 jobs:
   bootstrap:
     name: Bootstrap AWS Infrastructure
     runs-on: ubuntu-latest
-    env:
-      AWS_REGION: eu-north-1
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: Configure AWS Credentials (Admin)
+      - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ADMIN_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ADMIN_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-north-1
 
       - name: Create S3 State Bucket with Object Lock
         run: |
@@ -44,7 +45,7 @@ jobs:
               --client-id-list sts.amazonaws.com \
               --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
 
-      - name: Create Terraform Execution Role
+      - name: Create/Update Terraform Execution Role
         run: |
           cat > trust-policy.json << 'EOF'
           {
@@ -60,7 +61,7 @@ jobs:
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
                 },
                 "StringLike": {
-                  "token.actions.githubusercontent.com:sub": "repo:vivantel/content_manager:*"
+                  "token.actions.githubusercontent.com:sub": "repo:vivantel/content_manager:ref:refs/heads/master"
                 }
               }
             }]
@@ -69,7 +70,10 @@ jobs:
 
           aws iam create-role \
             --role-name vivascribe-terraform-role \
-            --assume-role-policy-document file://trust-policy.json || echo "Role may already exist"
+            --assume-role-policy-document file://trust-policy.json || \
+          aws iam update-assume-role-policy \
+            --role-name vivascribe-terraform-role \
+            --policy-document file://trust-policy.json
 
       - name: Attach Permissions Policy
         run: |
